@@ -2,30 +2,30 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
-[CustomEditor(typeof(ConstrainsCreator))]
+[CustomEditor(typeof(WaveFunctionController))]
 public class ConstraintsCreatorEdiitor : Editor
 {
-    private ConstrainsCreator constrainsCreator;
+    private WaveFunctionController waveFunctionController;
 
     public override void OnInspectorGUI()
     {
-        constrainsCreator = (ConstrainsCreator)target;
+        waveFunctionController = (WaveFunctionController)target;
 
         base.OnInspectorGUI();
 
-        if (GUILayout.Button("Preview level"))
+        if (GUILayout.Button("Generate constraints"))
         {
-            constrainsCreator.Create();
+            waveFunctionController.CreateConstraints();
         }
 
-        if (GUILayout.Button("Generate level"))
+        if (GUILayout.Button("Auto generate level"))
         {
-            constrainsCreator.Generate();
+            waveFunctionController.AutoGenerate();
         }
 
         if (GUILayout.Button("Start generation demo"))
         {
-            constrainsCreator.GenerationDemo();
+            waveFunctionController.GenerationDemo();
         }
     }
 }
