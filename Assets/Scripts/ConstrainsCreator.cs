@@ -7,16 +7,22 @@ public class ConstrainsCreator : MonoBehaviour
 {
     public List<Texture2D> tiles;
     private const int textureSideLength = 32;
+    private const float smoltextureSideLength = 10.66667f;
+
     private int step;
 
     public Transform canvas;
     public GameObject imagePref;
+    public GameObject smolImagePref;
+    public GameObject gridParentPref;
+
     private GameObject parent;
 
     public int gridSize = 3;
 
     private List<List<int>> colorSamplePos;
     private System.Random rng;
+    private Grid grid;
     public void Create()
     {
 
@@ -181,6 +187,67 @@ public class ConstrainsCreator : MonoBehaviour
 
     }
 
+   void ResetCanvasParent()
+   {
+       if(Application.isPlaying)
+           Destroy(parent);
+       else
+           DestroyImmediate(parent);
+
+       parent = new GameObject("parent");
+       parent.transform.SetParent(canvas);
+       parent.transform.localPosition = Vector3.zero;
+       parent.transform.localScale = new Vector2(1, 1);
+    }
+   public void GenerationDemo()
+   {
+       rng = new System.Random(0);
+      
+
+        TileConstraintsData data = DataSerializationUtility.Load<TileConstraintsData>(TileConstraintsData.pathEnd);
+
+       grid = new Grid(data, gridSize);
+       DisplayOptionPool(grid);
+     /*  const int tryCount = 1000;
+       int tries = 0;
+       while (tries < tryCount && !grid.CollapseAll(rng))
+       {
+           tries++;
+
+       }
+       Debug.Log("try count " + tries);
+
+       VisualiseGrid(grid);*/
+    }
+
+   void DisplayOptionPool(Grid grid)
+   {
+       ResetCanvasParent();
+
+       for (int x = 0; x < gridSize; x++)
+       {
+           for (int y = 0; y < gridSize; y++)
+           {
+               Vector2 startPos = new Vector2(x * textureSideLength, y * textureSideLength);
+               GameObject variantsGrid = Instantiate(gridParentPref, parent.transform);
+               variantsGrid.transform.localPosition = startPos;
+               for (int i = 0; i < grid.grid[x][y].allowed.Count; i++)
+               {
+                   Tile toSpawn = grid.grid[x][y].allowed[i];
+                    GameObject variant = CreateTile(startPos, toSpawn.tileName, tiles[toSpawn.tileID], toSpawn.rotID, textureSideLength);
+                    variant.transform.SetParent(variantsGrid.transform);
+                    variant.AddComponent<TileParams>().Setup(VariantSelect,i, new Vector2Int(x, y));
+               }
+            }
+        }
+
+   }
+
+   void VariantSelect(int id, Vector2Int pos)
+   {
+       grid.SelectOneVariant(id,pos);
+       DisplayOptionPool(grid);
+   }
    void VisualiseGrid(Grid grid)
     {
         for (int x = 0; x < gridSize; x++)
@@ -193,16 +260,16 @@ public class ConstrainsCreator : MonoBehaviour
                 {
                     Tile toSpawn = grid.grid[x][y].allowed[0];
 
-                    CreateTile(startPos, toSpawn.tileName, tiles[toSpawn.tileID], toSpawn.rotID);
+                    CreateTile(startPos, toSpawn.tileName, tiles[toSpawn.tileID], toSpawn.rotID, textureSideLength);
                 }
                 else if(grid.grid[x][y].allowed.Count == 0)
                 {
-                    CreateTile(startPos, "empty", GetFlatColorTexture(Color.green, textureSideLength), 0);
+                    CreateTile(startPos, "empty", GetFlatColorTexture(Color.green, textureSideLength), 0, textureSideLength);
                    // Debug.LogWarning("EMPTY TILE "+ x+ " ; "+ y);
                 }
                 else
                 {
-                    CreateTile(startPos, "more than 2", GetFlatColorTexture(Color.red, textureSideLength), 0);
+                    CreateTile(startPos, "more than 2", GetFlatColorTexture(Color.red, textureSideLength), 0, textureSideLength);
 
                 }
 
@@ -210,10 +277,10 @@ public class ConstrainsCreator : MonoBehaviour
         }
    }
 
-   GameObject CreateTile(Vector2 startPos,string name,Texture2D tex,int rotID)
+   GameObject CreateTile(Vector2 startPos,string name,Texture2D tex,int rotID,float size)
    {
        GameObject temp = Instantiate(imagePref, startPos, Quaternion.identity, parent.transform);
-       temp.GetComponent<Image>().sprite = Sprite.Create(tex, new Rect(0, 0, textureSideLength, textureSideLength), new Vector2(0.5f, 0.5f));
+       temp.GetComponent<Image>().sprite = Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f));
        temp.name = name;
        temp.transform.rotation = Quaternion.Euler(new Vector3(0, 0, -90 * rotID));
 
@@ -283,7 +350,8 @@ public class Grid
                 pos = FindLowestEntropy();
 
 
-            ChoseRandomOption(pos, rng);
+           int id=  ChoseRandomOption(pos, rng);
+           LeaveOnlySelectedVariant(pos, id);
             CollapseAdjasent(pos);
 
             tryCount++;
@@ -293,6 +361,11 @@ public class Grid
         return true;
     }
 
+    public void SelectOneVariant(int id, Vector2Int pos)
+    {
+        LeaveOnlySelectedVariant(pos, id);
+        CollapseAdjasent(pos);
+    }
     Vector2Int FindLowestEntropy()
     {
         Vector2Int lowestPos = Vector2Int.zero;
@@ -366,10 +439,15 @@ public class Grid
         return false;
     }
 
-    void ChoseRandomOption(Vector2Int pos, System.Random rng)
+    int ChoseRandomOption(Vector2Int pos, System.Random rng)
     {
-        int rngID = rng.Next(0, grid[pos.x][pos.y].allowed.Count);
-        Tile temp = new Tile(grid[pos.x][pos.y].allowed[rngID]);
+        return rng.Next(0, grid[pos.x][pos.y].allowed.Count);
+       
+    }
+
+    void LeaveOnlySelectedVariant(Vector2Int pos,int id)
+    {
+        Tile temp = new Tile(grid[pos.x][pos.y].allowed[id]);
         grid[pos.x][pos.y].allowed = new List<Tile>();
         grid[pos.x][pos.y].allowed.Add(temp);
     }
@@ -392,13 +470,18 @@ public class Grid
                 if (neighbours[i].exists)
                 {
                     Vector2Int neighPos = neighbours[i].pos;
-                 //   Debug.Log(grid[neighPos.x][neighPos.y].allowed.Count);
-                    if(grid[pos.x][pos.y].allowed.Count > 0)
-                        if (grid[neighPos.x][neighPos.y].Change(grid[pos.x][pos.y].allowed[0].constraints[i], i))
+
+                    if (grid[pos.x][pos.y].allowed.Count > 0)
+                    {
+                        bool changedAny = grid[neighPos.x][neighPos.y]
+                            .Change(grid[pos.x][pos.y].allowed[0].constraints[i], i);
+                        if (changedAny) // if any possibilieties were deleted
                         {
-                            if(grid[neighPos.x][neighPos.y].allowed.Count > 0)
-                            toCheck.Push(neighPos);
+                            if (grid[neighPos.x][neighPos.y].allowed.Count > 0)
+                                toCheck.Push(neighPos);
                         }
+                    }
+                       
 
                 }
             }

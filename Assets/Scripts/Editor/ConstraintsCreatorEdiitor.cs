@@ -22,5 +22,10 @@ public class ConstraintsCreatorEdiitor : Editor
         {
             constrainsCreator.Generate();
         }
+
+        if (GUILayout.Button("Start generation demo"))
+        {
+            constrainsCreator.GenerationDemo();
+        }
     }
 }
