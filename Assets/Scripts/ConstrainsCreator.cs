@@ -7,13 +7,11 @@ public class ConstrainsCreator : MonoBehaviour
 {
     public List<Texture2D> tiles;
     private const int textureSideLength = 32;
-    private const float smoltextureSideLength = 10.66667f;
 
     private int step;
 
     public Transform canvas;
     public GameObject imagePref;
-    public GameObject smolImagePref;
     public GameObject gridParentPref;
 
     private GameObject parent;
@@ -168,7 +166,7 @@ public class ConstrainsCreator : MonoBehaviour
         DestroyImmediate(parent);
         parent = new GameObject("parent");
         parent.transform.SetParent(canvas);
-        rng = new System.Random(0);
+        rng = new System.Random();
 
         TileConstraintsData data = DataSerializationUtility.Load<TileConstraintsData>(TileConstraintsData.pathEnd);
 
@@ -201,7 +199,7 @@ public class ConstrainsCreator : MonoBehaviour
     }
    public void GenerationDemo()
    {
-       rng = new System.Random(0);
+       rng = new System.Random();
       
 
         TileConstraintsData data = DataSerializationUtility.Load<TileConstraintsData>(TileConstraintsData.pathEnd);
@@ -469,12 +467,13 @@ public class Grid
             {
                 if (neighbours[i].exists)
                 {
+                    Debug.Log(i);
                     Vector2Int neighPos = neighbours[i].pos;
 
                     if (grid[pos.x][pos.y].allowed.Count > 0)
                     {
                         bool changedAny = grid[neighPos.x][neighPos.y]
-                            .Change(grid[pos.x][pos.y].allowed[0].constraints[i], i);
+                            .Change(grid[pos.x][pos.y].allowed, i);
                         if (changedAny) // if any possibilieties were deleted
                         {
                             if (grid[neighPos.x][neighPos.y].allowed.Count > 0)
@@ -517,42 +516,7 @@ public class Grid
         return neighbours;
     }
 }
-public class OptionsPool
-{
-    public List<Tile> allowed;
 
-    public OptionsPool(List<Tile> allowed)
-    {
-        this.allowed = new List<Tile>(allowed);
-    }
-
-    public bool Change(BorderConstraints other, int dirID)
-    {
-        bool changedAny = false;
-        List<int> toRemove = new List<int>();
-
-        for (int i = 0; i < allowed.Count; i++)
-        {
-            if (allowed[i].AreConflicting(other, dirID))
-            {
-                toRemove.Add(i);
-                changedAny = true;
-            }
-        }
-
-        for (int i = toRemove.Count -1; i >= 0; i--)
-        {
-            allowed.RemoveAt(toRemove[i]);
-        }
-
-        return changedAny;
-    }
-
-    public int GetEntropy()
-    {
-        return allowed.Count;
-    }
-}
 
 public class Neighbour
 {
