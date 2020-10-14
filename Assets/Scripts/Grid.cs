@@ -144,7 +144,7 @@ public class Grid
             {
                 if (neighbours[i].exists)
                 {
-                    Debug.Log(i);
+                  //  Debug.Log(i);
                     Vector2Int neighPos = neighbours[i].pos;
 
                     if (grid[pos.x][pos.y].allowed.Count > 0)

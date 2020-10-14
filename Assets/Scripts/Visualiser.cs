@@ -124,16 +124,31 @@ public class Visualiser : MonoBehaviour
                 Vector2 startPos = new Vector2(x * textureSideLength, y * textureSideLength);
                 GameObject variantsGrid = Instantiate(gridParentPref, parent.transform);
                 variantsGrid.transform.localPosition = startPos;
+
+                if (grid.grid[x][y].allowed.Count == 1)
+                {
+                    GridLayoutGroup gridLayoutGroup = variantsGrid.GetComponent<GridLayoutGroup>();
+                    gridLayoutGroup.cellSize = new Vector2(textureSideLength, textureSideLength);
+                    gridLayoutGroup.spacing = Vector2.zero;
+
+                    SpawnTileForDemo(grid.grid[x][y].allowed[0], variantsGrid.transform, startPos);
+                }
+                
                 for (int i = 0; i < grid.grid[x][y].allowed.Count; i++)
                 {
-                    Tile toSpawn = grid.grid[x][y].allowed[i];
-                    GameObject variant = CreateTile(startPos, toSpawn.tileName, tiles[toSpawn.tileID], toSpawn.rotID, textureSideLength);
-                    variant.transform.SetParent(variantsGrid.transform);
+                    GameObject variant = SpawnTileForDemo(grid.grid[x][y].allowed[i], variantsGrid.transform, startPos);
                     variant.AddComponent<TileParams>().Setup(clickAction, i, new Vector2Int(x, y));
                 }
             }
         }
 
+    }
+
+    GameObject SpawnTileForDemo(Tile toSpawn,Transform parent, Vector2 startPos)
+    {
+        GameObject variant = CreateTile(startPos, toSpawn.tileName, tiles[toSpawn.tileID], toSpawn.rotID, textureSideLength);
+        variant.transform.SetParent(parent);
+        return variant;
     }
 
     GameObject CreateTile(Vector2 startPos, string name, Texture2D tex, int rotID, float size)
